@@ -39,6 +39,8 @@ class DoseResponseSimulator:
                  true_curve: Optional[Callable] = None,
                  between_study_sd: float = 0.1,
                  within_study_sd: float = 0.05,
+                 dose_dependent_het: bool = False,
+                 het_dose_slope: float = 0.001,
                  random_seed: Optional[int] = None):
 
         self.n_studies = n_studies
@@ -46,6 +48,8 @@ class DoseResponseSimulator:
         self.dose_range = dose_range
         self.between_study_sd = between_study_sd
         self.within_study_sd = within_study_sd
+        self.dose_dependent_het = dose_dependent_het
+        self.het_dose_slope = het_dose_slope
         self.random_seed = random_seed
 
         if random_seed is not None:
@@ -84,6 +88,48 @@ class DoseResponseSimulator:
         from scipy.interpolate import CubicSpline
         cs = CubicSpline(knots, coefficients)
         return lambda x: cs(np.clip(x, knots[0], knots[-1]))
+
+    @staticmethod
+    def create_u_shaped_curve(minimum: float = 50, scale: float = 0.0002) -> Callable:
+        """
+        Create a U-shaped dose-response curve (quadratic with positive quadratic term)
+
+        Common in nutrition epidemiology (e.g., vitamin supplementation)
+        """
+        return lambda x: scale * (x - minimum) ** 2
+
+    @staticmethod
+    def create_j_shaped_curve(threshold: float = 20, linear_slope: float = 0.01,
+                             quad_coef: float = 0.0001) -> Callable:
+        """
+        Create a J-shaped dose-response curve
+
+        Protective at low doses, harmful at high doses
+        Common in alcohol research
+        """
+        def j_curve(x):
+            x = np.atleast_1d(x)
+            result = np.zeros_like(x, dtype=float)
+            # Below threshold: protective effect
+            mask_low = x < threshold
+            result[mask_low] = -linear_slope * (threshold - x[mask_low])
+            # Above threshold: increasing risk
+            mask_high = x >= threshold
+            result[mask_high] = quad_coef * (x[mask_high] - threshold) ** 2
+            return result
+        return j_curve
+
+    @staticmethod
+    def create_inverse_j_shaped_curve(inflection: float = 40,
+                                      initial_benefit: float = 0.5,
+                                      decay_rate: float = 0.03) -> Callable:
+        """
+        Create an inverse J-shaped curve (reverse J)
+
+        Rapid benefit at low doses, plateaus or slightly decreases at high doses
+        Common in physical activity research
+        """
+        return lambda x: initial_benefit * (1 - np.exp(-decay_rate * x)) - 0.0001 * x
 
     def simulate_study_doses(self, study_idx: int) -> np.ndarray:
         """
@@ -132,10 +178,21 @@ class DoseResponseSimulator:
             doses = self.simulate_study_doses(study_idx)
 
             # Study-specific random effect (between-study heterogeneity)
-            study_effect = np.random.normal(0, self.between_study_sd)
+            if self.dose_dependent_het:
+                # Heterogeneity increases with dose: tau(dose) = tau0 + tau1 * dose
+                study_effect = np.random.normal(
+                    0,
+                    self.between_study_sd * (1 + self.het_dose_slope * doses)
+                )
+            else:
+                # Constant heterogeneity across doses
+                study_effect = np.random.normal(0, self.between_study_sd)
 
             # True dose-response for this study
-            true_log_rr = self.true_curve(doses) + study_effect
+            if isinstance(study_effect, (int, float)):
+                true_log_rr = self.true_curve(doses) + study_effect
+            else:
+                true_log_rr = self.true_curve(doses) + study_effect
 
             # Add measurement error (within-study variability)
             # Standard error increases slightly with dose (realistic)
@@ -147,6 +204,12 @@ class DoseResponseSimulator:
 
             # Create study data
             for i, dose in enumerate(doses):
+                # Handle both scalar and array study effects
+                if isinstance(study_effect, (int, float)):
+                    se_i = study_effect
+                else:
+                    se_i = study_effect[i]
+
                 data_list.append({
                     'study_id': study_idx,
                     'dose': dose,
@@ -154,7 +217,7 @@ class DoseResponseSimulator:
                     'se': se[i],
                     'variance': se[i]**2,
                     'true_log_rr': true_log_rr[i],
-                    'study_effect': study_effect
+                    'study_effect': se_i
                 })
 
         return pd.DataFrame(data_list)
@@ -260,6 +323,41 @@ def generate_example_scenarios() -> dict:
         between_study_sd=0.18,
         within_study_sd=0.1,
         random_seed=999
+    )
+
+    # Scenario 6: U-shaped curve (vitamins/micronutrients)
+    scenarios['u_shaped'] = DoseResponseSimulator(
+        n_studies=16,
+        n_doses_per_study=(4, 6),
+        dose_range=(0, 100),
+        true_curve=DoseResponseSimulator.create_u_shaped_curve(minimum=50, scale=0.0002),
+        between_study_sd=0.10,
+        within_study_sd=0.08,
+        random_seed=111
+    )
+
+    # Scenario 7: J-shaped curve (alcohol consumption)
+    scenarios['j_shaped'] = DoseResponseSimulator(
+        n_studies=14,
+        n_doses_per_study=5,
+        dose_range=(0, 80),
+        true_curve=DoseResponseSimulator.create_j_shaped_curve(threshold=20, linear_slope=0.01, quad_coef=0.0002),
+        between_study_sd=0.14,
+        within_study_sd=0.09,
+        random_seed=222
+    )
+
+    # Scenario 8: Dose-dependent heterogeneity
+    scenarios['dose_dependent_het'] = DoseResponseSimulator(
+        n_studies=18,
+        n_doses_per_study=6,
+        dose_range=(0, 100),
+        true_curve=DoseResponseSimulator.create_linear_curve(slope=0.012),
+        between_study_sd=0.08,
+        within_study_sd=0.07,
+        dose_dependent_het=True,
+        het_dose_slope=0.015,  # Heterogeneity increases with dose
+        random_seed=333
     )
 
     return scenarios

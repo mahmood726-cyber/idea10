@@ -199,17 +199,54 @@ class OneStageDRMA:
 
         params_init = np.concatenate([beta_init, [np.log(tau2_init)]])
 
-        # Optimize REML
-        result = minimize(
-            self._reml_objective,
-            params_init,
-            args=(X, log_rr, V_within, Z),
-            method='BFGS',
-            options={'maxiter': 1000}
-        )
+        # Optimize REML with constrained optimization (L-BFGS-B)
+        # Use log(tau2) parameterization so tau2 is always positive
+        # Multi-start for robustness
+
+        best_result = None
+        best_value = np.inf
+
+        # Try multiple initial values for tau2
+        tau2_starts = [tau2_init, tau2_init * 0.1, tau2_init * 10, 0.001, 0.1]
+
+        for tau2_start in tau2_starts:
+            params_start = np.concatenate([beta_init, [np.log(max(tau2_start, 1e-6))]])
+
+            result = minimize(
+                self._reml_objective,
+                params_start,
+                args=(X, log_rr, V_within, Z),
+                method='L-BFGS-B',  # Constrained optimization
+                bounds=[(None, None)] * p + [(-10, 5)],  # Bounds on log(tau2): tau2 in (1e-4, 150)
+                options={'maxiter': 2000, 'ftol': 1e-9}
+            )
+
+            if result.fun < best_value:
+                best_value = result.fun
+                best_result = result
+
+        result = best_result
 
         if not result.success:
-            warnings.warn("REML optimization did not converge")
+            warnings.warn(f"REML optimization did not converge: {result.message}")
+            # Raise error instead of just warning
+            # Fall back to fixed tau2 = 0 if optimization completely fails
+            if result.fun > 1e8:  # Very large objective value indicates failure
+                warnings.warn("REML optimization failed completely, using tau2=0")
+                self.tau2 = 0.0
+                self.beta = beta_init
+                # Continue with fixed effects estimates
+                self.Psi = np.zeros((n_studies, n_studies))
+                V = V_within
+                V_inv = np.linalg.inv(V + 1e-8 * np.eye(n))
+                self.vcov_beta = np.linalg.inv(X.T @ V_inv @ X)
+                self.fitted_doses = doses
+                self.fitted_log_rr = log_rr
+                self.fitted_variance = variance
+                self.study_id = study_id
+                self.basis_function = basis_function
+                self.study_effects = np.zeros(n_studies)
+                return self
 
         # Extract estimates
         self.beta = result.x[:p]

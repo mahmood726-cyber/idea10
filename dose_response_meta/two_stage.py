@@ -105,7 +105,10 @@ class TwoStageDRMA:
 
     def _pool_estimates_dl(self, betas: np.ndarray, vcovs: List[np.ndarray]) -> Tuple[np.ndarray, np.ndarray, float]:
         """
-        Pool estimates using DerSimonian-Laird random-effects meta-analysis
+        Pool estimates using multivariate DerSimonian-Laird random-effects meta-analysis
+
+        Based on Jackson et al. (2010) "Multivariate meta-analysis: Potential and promise"
+        and White (2011) "Multivariate random-effects meta-regression"
 
         Parameters
         ----------
@@ -121,12 +124,111 @@ class TwoStageDRMA:
         pooled_vcov : np.ndarray
             Variance-covariance matrix of pooled estimates
         tau2 : float
-            Between-study variance
+            Between-study variance (isotropic)
         """
         n_studies, n_params = betas.shape
 
-        # For multivariate case, we'll use a simplified approach
-        # Pool each parameter separately using univariate DL method
+        # Step 1: Fixed-effects pooling to get initial estimate
+        # Sum of inverse variance-covariance matrices
+        sum_inv_V = np.zeros((n_params, n_params))
+        sum_inv_V_beta = np.zeros(n_params)
+
+        for i in range(n_studies):
+            try:
+                inv_V = np.linalg.inv(vcovs[i] + 1e-8 * np.eye(n_params))
+                sum_inv_V += inv_V
+                sum_inv_V_beta += inv_V @ betas[i, :]
+            except np.linalg.LinAlgError:
+                # Skip singular matrices
+                continue
+
+        try:
+            beta_fixed = np.linalg.solve(sum_inv_V, sum_inv_V_beta)
+        except np.linalg.LinAlgError:
+            # Fallback to univariate if multivariate fails
+            warnings.warn("Multivariate pooling failed, using univariate fallback")
+            return self._pool_estimates_dl_univariate(betas, vcovs)
+
+        # Step 2: Compute Q statistic for heterogeneity
+        Q = 0.0
+        for i in range(n_studies):
+            resid = betas[i, :] - beta_fixed
+            try:
+                inv_V = np.linalg.inv(vcovs[i] + 1e-8 * np.eye(n_params))
+                Q += resid.T @ inv_V @ resid
+            except np.linalg.LinAlgError:
+                continue
+
+        # Step 3: DerSimonian-Laird estimate of tau²
+        # For multivariate case with isotropic heterogeneity: Psi = tau² * I
+        # Q ~ chi²(df), where df = n_studies * n_params - n_params
+        df = n_studies * n_params - n_params
+
+        # Compute constant C for DL estimator
+        # C = trace(sum W_i) - trace(sum W_i * inv(sum W_i) * W_i)
+        C = 0.0
+        for i in range(n_studies):
+            try:
+                inv_V = np.linalg.inv(vcovs[i] + 1e-8 * np.eye(n_params))
+                C += np.trace(inv_V)
+            except np.linalg.LinAlgError:
+                continue
+
+        # Correction term
+        C_correction = 0.0
+        for i in range(n_studies):
+            try:
+                inv_V = np.linalg.inv(vcovs[i] + 1e-8 * np.eye(n_params))
+                temp = inv_V @ np.linalg.inv(sum_inv_V) @ inv_V
+                C_correction += np.trace(temp)
+            except np.linalg.LinAlgError:
+                continue
+
+        C = C - C_correction
+
+        # Estimate tau²
+        if C > 0:
+            tau2 = max(0, (Q - df) / C)
+        else:
+            tau2 = 0.0
+
+        # Step 4: Random-effects pooling with estimated tau²
+        # Total variance: V_i + tau² * I
+        sum_inv_V_re = np.zeros((n_params, n_params))
+        sum_inv_V_re_beta = np.zeros(n_params)
+
+        Psi = tau2 * np.eye(n_params)  # Isotropic between-study variance
+
+        for i in range(n_studies):
+            try:
+                V_total = vcovs[i] + Psi
+                inv_V_total = np.linalg.inv(V_total)
+                sum_inv_V_re += inv_V_total
+                sum_inv_V_re_beta += inv_V_total @ betas[i, :]
+            except np.linalg.LinAlgError:
+                continue
+
+        # Pooled estimate
+        try:
+            pooled_beta = np.linalg.solve(sum_inv_V_re, sum_inv_V_re_beta)
+            pooled_vcov = np.linalg.inv(sum_inv_V_re)
+        except np.linalg.LinAlgError:
+            # Final fallback
+            warnings.warn("Random-effects pooling failed, using fixed-effects")
+            pooled_beta = beta_fixed
+            pooled_vcov = np.linalg.inv(sum_inv_V)
+            tau2 = 0.0
+
+        return pooled_beta, pooled_vcov, tau2
+
+    def _pool_estimates_dl_univariate(self, betas: np.ndarray, vcovs: List[np.ndarray]) -> Tuple[np.ndarray, np.ndarray, float]:
+        """
+        Fallback univariate pooling when multivariate pooling fails
+
+        NOTE: This ignores correlation between parameters and should only be used
+        as a last resort when multivariate pooling fails.
+        """
+        n_studies, n_params = betas.shape
 
         pooled_beta = np.zeros(n_params)
         pooled_vcov = np.zeros((n_params, n_params))
@@ -156,42 +258,60 @@ class TwoStageDRMA:
             pooled_vcov[j, j] = 1.0 / np.sum(w_re)
             tau2_vec[j] = tau2
 
-        # Use average tau² (simplified approach)
+        # Use average tau²
         tau2 = np.mean(tau2_vec)
 
         return pooled_beta, pooled_vcov, tau2
 
     def _pool_estimates_fixed(self, betas: np.ndarray, vcovs: List[np.ndarray]) -> Tuple[np.ndarray, np.ndarray]:
         """
-        Pool estimates using fixed-effects meta-analysis
+        Pool estimates using multivariate fixed-effects meta-analysis
 
         Parameters
         ----------
         betas : np.ndarray
-            Study-specific estimates
+            Study-specific estimates (n_studies x n_params)
         vcovs : List[np.ndarray]
             Study-specific variance-covariance matrices
 
         Returns
         -------
         pooled_beta : np.ndarray
+            Pooled coefficients
         pooled_vcov : np.ndarray
+            Variance-covariance matrix of pooled estimates
         """
         n_studies, n_params = betas.shape
 
-        pooled_beta = np.zeros(n_params)
-        pooled_vcov = np.zeros((n_params, n_params))
+        # Multivariate fixed-effects: pooled = (sum V_i^-1)^-1 * sum(V_i^-1 * beta_i)
+        sum_inv_V = np.zeros((n_params, n_params))
+        sum_inv_V_beta = np.zeros(n_params)
 
-        for j in range(n_params):
-            theta = betas[:, j]
-            sigma2 = np.array([vcov[j, j] for vcov in vcovs])
+        for i in range(n_studies):
+            try:
+                inv_V = np.linalg.inv(vcovs[i] + 1e-8 * np.eye(n_params))
+                sum_inv_V += inv_V
+                sum_inv_V_beta += inv_V @ betas[i, :]
+            except np.linalg.LinAlgError:
+                # Skip singular matrices
+                warnings.warn(f"Study {i} has singular covariance matrix, skipping")
+                continue
 
-            # Inverse-variance weights
-            w = 1.0 / sigma2
+        try:
+            pooled_beta = np.linalg.solve(sum_inv_V, sum_inv_V_beta)
+            pooled_vcov = np.linalg.inv(sum_inv_V)
+        except np.linalg.LinAlgError:
+            warnings.warn("Fixed-effects pooling failed, using univariate fallback")
+            # Univariate fallback
+            pooled_beta = np.zeros(n_params)
+            pooled_vcov = np.zeros((n_params, n_params))
 
-            # Pooled estimate
-            pooled_beta[j] = np.sum(w * theta) / np.sum(w)
-            pooled_vcov[j, j] = 1.0 / np.sum(w)
+            for j in range(n_params):
+                theta = betas[:, j]
+                sigma2 = np.array([vcov[j, j] for vcov in vcovs])
+                w = 1.0 / sigma2
+                pooled_beta[j] = np.sum(w * theta) / np.sum(w)
+                pooled_vcov[j, j] = 1.0 / np.sum(w)
 
         return pooled_beta, pooled_vcov
 
@@ -305,9 +425,10 @@ class TwoStageDRMA:
     def predict(self,
                 doses: np.ndarray,
                 return_ci: bool = False,
-                alpha: float = 0.05) -> Tuple[np.ndarray, ...]:
+                alpha: float = 0.05,
+                use_hksj: bool = True) -> Tuple[np.ndarray, ...]:
         """
-        Predict pooled dose-response curve
+        Predict pooled dose-response curve with optional HKSJ correction
 
         Parameters
         ----------
@@ -317,12 +438,20 @@ class TwoStageDRMA:
             Whether to return confidence intervals
         alpha : float
             Significance level
+        use_hksj : bool
+            Whether to use Hartung-Knapp-Sidik-Jonkman small-sample correction
+            (default: True). Recommended for meta-analyses with < 20 studies.
 
         Returns
         -------
         predictions : np.ndarray
         lower_ci : np.ndarray (if return_ci=True)
         upper_ci : np.ndarray (if return_ci=True)
+
+        References
+        ----------
+        Hartung J, Knapp G. Stat Med. 2001;20(24):3875-89.
+        IntHout J, Ioannidis JP, Borm GF. BMJ. 2014;349:g5219.
         """
         if self.pooled_beta is None:
             raise ValueError("Model must be fitted before prediction")
@@ -336,15 +465,50 @@ class TwoStageDRMA:
         if not return_ci:
             return predictions
 
-        # Confidence intervals
-        z = norm.ppf(1 - alpha/2)
-
         # Variance of predictions
         pred_var = np.sum((X @ self.pooled_vcov) * X, axis=1)
         pred_se = np.sqrt(pred_var)
 
-        lower_ci = predictions - z * pred_se
-        upper_ci = predictions + z * pred_se
+        # HKSJ correction for small-sample meta-analyses
+        if use_hksj and hasattr(self, 'study_estimates'):
+            n_studies = len([s for s in self.study_estimates if s['converged']])
+
+            if n_studies < 20:  # HKSJ recommended for < 20 studies
+                # Degrees of freedom
+                df = n_studies - 1
+
+                # Use t-distribution instead of normal
+                from scipy.stats import t as t_dist
+                t_crit = t_dist.ppf(1 - alpha/2, df)
+
+                # HKSJ variance correction factor
+                # Multiply variance by Q/(k-1) if Q > k-1
+                if hasattr(self, 'heterogeneity_stats'):
+                    Q = self.heterogeneity_stats['Q']
+                    Q_df = self.heterogeneity_stats['Q_df']
+
+                    if Q > Q_df:
+                        hksj_factor = Q / Q_df
+                    else:
+                        hksj_factor = 1.0
+
+                    pred_se_hksj = pred_se * np.sqrt(hksj_factor)
+                else:
+                    pred_se_hksj = pred_se
+                    t_crit = t_dist.ppf(1 - alpha/2, df)
+
+                lower_ci = predictions - t_crit * pred_se_hksj
+                upper_ci = predictions + t_crit * pred_se_hksj
+            else:
+                # Large sample: use normal distribution
+                z = norm.ppf(1 - alpha/2)
+                lower_ci = predictions - z * pred_se
+                upper_ci = predictions + z * pred_se
+        else:
+            # No HKSJ correction
+            z = norm.ppf(1 - alpha/2)
+            lower_ci = predictions - z * pred_se
+            upper_ci = predictions + z * pred_se
 
         return predictions, lower_ci, upper_ci
 
