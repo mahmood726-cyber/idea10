@@ -1,0 +1,45 @@
+,,,coverage,coverage,coverage,coverage,mse,mse,hksj_factor,hksj_factor,I2,I2
+,,,mean,std,min,max,mean,std,mean,std,mean,std
+k,scenario,method,,,,,,,,,,
+8,Log (High Het),TwoStage_DL_HKSJ,98.78,1.8215,92.0,100.0,0.4824,0.9435,6.7945,1.7431,97.3186,1.6482
+8,Log (High Het),TwoStage_DL_Normal,92.44,1.6801,88.0,97.0,0.4824,0.9435,1.0,0.0,97.3186,1.6482
+8,Quadratic (Moderate Het),TwoStage_DL_HKSJ,99.82,1.1373,92.0,100.0,0.1649,0.3818,4.7724,1.2601,94.5863,3.1136
+8,Quadratic (Moderate Het),TwoStage_DL_Normal,96.52,3.1959,89.0,100.0,0.1649,0.3818,1.0,0.0,94.5863,3.1136
+8,U-Shaped (Moderate Het),TwoStage_DL_HKSJ,99.86,0.9899,93.0,100.0,0.1681,0.4085,4.7771,1.2598,94.6243,3.003
+8,U-Shaped (Moderate Het),TwoStage_DL_Normal,96.38,3.1937,89.0,100.0,0.1681,0.4085,1.0,0.0,94.6243,3.003
+10,Log (High Het),TwoStage_DL_HKSJ,98.4,1.5253,95.0,100.0,0.678,3.4083,6.5818,1.4557,97.2972,1.3617
+10,Log (High Het),TwoStage_DL_Normal,91.96,1.6157,89.0,96.0,0.678,3.4083,1.0,0.0,97.2972,1.3617
+10,Quadratic (Moderate Het),TwoStage_DL_HKSJ,99.6,1.3851,94.0,100.0,0.1102,0.4512,4.6653,1.0945,94.482,3.1099
+10,Quadratic (Moderate Het),TwoStage_DL_Normal,95.2,2.7105,91.0,100.0,0.1102,0.4512,1.0,0.0,94.482,3.1099
+10,U-Shaped (Moderate Het),TwoStage_DL_HKSJ,99.62,1.3231,94.0,100.0,0.1149,0.3503,4.6784,1.1008,94.5145,3.0826
+10,U-Shaped (Moderate Het),TwoStage_DL_Normal,95.12,2.7601,90.0,100.0,0.1149,0.3503,1.0,0.0,94.5145,3.0826
+12,Log (High Het),TwoStage_DL_HKSJ,97.58,1.9069,94.0,100.0,1.5409,9.3183,6.2966,1.2618,97.1813,1.075
+12,Log (High Het),TwoStage_DL_Normal,91.24,1.5194,88.0,95.0,1.5409,9.3183,1.0,0.0,97.1813,1.075
+12,Quadratic (Moderate Het),TwoStage_DL_HKSJ,99.68,1.2848,94.0,100.0,2.2794,15.7308,4.4172,0.9158,94.2416,2.2626
+12,Quadratic (Moderate Het),TwoStage_DL_Normal,95.5,3.0456,90.0,100.0,2.2794,15.7308,1.0,0.0,94.2416,2.2626
+12,U-Shaped (Moderate Het),TwoStage_DL_HKSJ,99.7,1.2164,94.0,100.0,2.6133,18.1076,4.4203,0.9218,94.247,2.2495
+12,U-Shaped (Moderate Het),TwoStage_DL_Normal,95.62,2.9408,91.0,100.0,2.6133,18.1076,1.0,0.0,94.247,2.2495
+15,Log (High Het),TwoStage_DL_HKSJ,97.62,1.7248,95.0,100.0,0.4146,0.9347,6.835,1.3249,97.62,0.9031
+15,Log (High Het),TwoStage_DL_Normal,91.12,1.2558,89.0,95.0,0.4146,0.9347,1.0,0.0,97.62,0.9031
+15,Quadratic (Moderate Het),TwoStage_DL_HKSJ,99.46,1.3881,95.0,100.0,0.1071,0.403,4.7384,0.9309,95.0223,1.9584
+15,Quadratic (Moderate Het),TwoStage_DL_Normal,95.6,2.9137,92.0,100.0,0.1071,0.403,1.0,0.0,95.0223,1.9584
+15,U-Shaped (Moderate Het),TwoStage_DL_HKSJ,99.48,1.3285,95.0,100.0,0.0997,0.4043,4.738,0.9295,95.0222,1.9514
+15,U-Shaped (Moderate Het),TwoStage_DL_Normal,95.64,2.805,92.0,100.0,0.0997,0.4043,1.0,0.0,95.0222,1.9514
+20,Log (High Het),TwoStage_DL_HKSJ,96.94,1.4765,95.0,100.0,0.3469,0.9832,6.6993,0.9255,97.6296,0.7423
+20,Log (High Het),TwoStage_DL_Normal,90.8,0.9689,89.0,93.0,0.3469,0.9832,1.0,0.0,97.6296,0.7423
+20,Quadratic (Moderate Het),TwoStage_DL_HKSJ,99.84,0.7656,95.0,100.0,0.3411,1.9097,4.7153,0.6391,95.2352,1.4141
+20,Quadratic (Moderate Het),TwoStage_DL_Normal,95.8,2.8571,92.0,100.0,0.3411,1.9097,1.0,0.0,95.2352,1.4141
+20,U-Shaped (Moderate Het),TwoStage_DL_HKSJ,99.82,0.7475,96.0,100.0,0.424,2.4999,4.7254,0.6361,95.2595,1.3965
+20,U-Shaped (Moderate Het),TwoStage_DL_Normal,95.72,2.6729,92.0,100.0,0.424,2.4999,1.0,0.0,95.2595,1.3965
+25,Log (High Het),TwoStage_DL_HKSJ,96.62,1.2599,94.0,99.0,0.2111,0.318,6.7664,0.9193,97.7005,0.5948
+25,Log (High Het),TwoStage_DL_Normal,90.42,0.9055,88.0,93.0,0.2111,0.318,1.0,0.0,97.7005,0.5948
+25,Quadratic (Moderate Het),TwoStage_DL_HKSJ,99.72,1.1256,95.0,100.0,0.0547,0.1655,4.7388,0.6575,95.3003,1.255
+25,Quadratic (Moderate Het),TwoStage_DL_Normal,96.14,2.7995,92.0,100.0,0.0547,0.1655,1.0,0.0,95.3003,1.255
+25,U-Shaped (Moderate Het),TwoStage_DL_HKSJ,99.78,0.8873,96.0,100.0,0.0574,0.1782,4.7376,0.6567,95.2979,1.2605
+25,U-Shaped (Moderate Het),TwoStage_DL_Normal,96.06,2.7435,92.0,100.0,0.0574,0.1782,1.0,0.0,95.2979,1.2605
+30,Log (High Het),TwoStage_DL_HKSJ,95.96,1.3087,94.0,99.0,0.2552,0.5028,6.9038,1.0209,97.758,0.6868
+30,Log (High Het),TwoStage_DL_Normal,89.92,0.8291,88.0,92.0,0.2552,0.5028,1.0,0.0,97.758,0.6868
+30,Quadratic (Moderate Het),TwoStage_DL_HKSJ,99.72,1.1256,95.0,100.0,0.2864,1.3766,4.8511,0.7382,95.4442,1.4257
+30,Quadratic (Moderate Het),TwoStage_DL_Normal,95.54,2.8941,91.0,100.0,0.2864,1.3766,1.0,0.0,95.4442,1.4257
+30,U-Shaped (Moderate Het),TwoStage_DL_HKSJ,99.72,1.0506,95.0,100.0,0.3581,1.6779,4.8529,0.7337,95.4522,1.4124
+30,U-Shaped (Moderate Het),TwoStage_DL_Normal,95.62,2.5864,92.0,100.0,0.3581,1.6779,1.0,0.0,95.4522,1.4124
