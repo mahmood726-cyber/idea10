@@ -5,10 +5,21 @@ Implementation based on:
 - Orsini N, et al. Am J Epidemiol. 2012
 - Berlin JA, et al. Stat Med. 1993
 - DerSimonian R, Laird N. Control Clin Trials. 1986
+- Jackson D, et al. Stat Med. 2010 (multivariate pooling)
+- White IR. Stata J. 2011 (multivariate meta-regression)
 
 Two-stage approach:
 1. Stage 1: Estimate dose-response curves within each study
-2. Stage 2: Pool study-specific estimates using random-effects meta-analysis
+2. Stage 2: Pool study-specific estimates using multivariate random-effects meta-analysis
+
+IMPORTANT: This implementation assumes ISOTROPIC between-study heterogeneity,
+where Psi = tau² * I (proportional to identity matrix). This means all parameters
+share the same between-study variance tau², but correlations in random effects
+are not modeled. This simplification provides computational tractability and
+interpretability while maintaining proper multivariate pooling of point estimates
+and within-study correlations.
+
+For unstructured heterogeneity (full Psi matrix), see future extensions.
 """
 
 import numpy as np
@@ -19,17 +30,49 @@ import warnings
 
 class TwoStageDRMA:
     """
-    Two-stage dose-response meta-analysis.
+    Two-stage dose-response meta-analysis with multivariate pooling.
 
     Stage 1: Fit dose-response model within each study
-    Stage 2: Pool estimates across studies using random-effects meta-analysis
+    Stage 2: Pool estimates across studies using multivariate random-effects meta-analysis
+
+    This implementation uses MULTIVARIATE pooling (Jackson et al. 2010) which properly
+    accounts for correlations between parameters within studies. However, it assumes
+    ISOTROPIC between-study heterogeneity: Psi = tau² * I.
+
+    This means:
+    - All spline/polynomial coefficients share the same between-study variance (tau²)
+    - Correlations in random effects across parameters are not modeled
+    - Within-study correlations ARE properly accounted for
+
+    Justification for isotropic assumption:
+    - Computational tractability (unstructured Psi requires k*p*(p+1)/2 parameters)
+    - Interpretability (single tau² easier to report and understand)
+    - Sufficient for most applications (sensitivity analysis recommended)
 
     Parameters
     ----------
     pooling_method : str
         Method for stage 2 pooling: 'dl' (DerSimonian-Laird), 'reml', or 'fixed'
+        Default: 'dl' (recommended)
     reference_dose : float
-        Reference dose level
+        Reference dose level (default: 0.0)
+
+    Attributes
+    ----------
+    tau2 : float
+        Between-study variance (estimated if pooling_method='dl')
+    pooled_beta : np.ndarray
+        Pooled dose-response coefficients
+    pooled_vcov : np.ndarray
+        Variance-covariance matrix of pooled coefficients
+    heterogeneity_stats : dict
+        I², H², Q statistics for heterogeneity assessment
+
+    References
+    ----------
+    Jackson D, White IR, Thompson SG. Stat Med. 2010;29(12):1282-97.
+    White IR. Stata J. 2011;11(2):255-270.
+    IntHout J, Ioannidis JPA, Borm GF. BMJ. 2014;349:g5219.
     """
 
     def __init__(self,
@@ -470,6 +513,9 @@ class TwoStageDRMA:
         pred_se = np.sqrt(pred_var)
 
         # HKSJ correction for small-sample meta-analyses
+        # Based on IntHout et al. (2014) BMJ: "The Hartung-Knapp-Sidik-Jonkman method
+        # for random effects meta-analysis is straightforward and considerably
+        # outperforms the standard DerSimonian-Laird method"
         if use_hksj and hasattr(self, 'study_estimates'):
             n_studies = len([s for s in self.study_estimates if s['converged']])
 
@@ -482,20 +528,18 @@ class TwoStageDRMA:
                 t_crit = t_dist.ppf(1 - alpha/2, df)
 
                 # HKSJ variance correction factor
-                # Multiply variance by Q/(k-1) if Q > k-1
+                # According to IntHout et al. (2014), use Q/df directly
+                # This reduces SE when Q < df (low heterogeneity) and increases when Q > df
                 if hasattr(self, 'heterogeneity_stats'):
                     Q = self.heterogeneity_stats['Q']
-                    Q_df = self.heterogeneity_stats['Q_df']
+                    Q_df = max(self.heterogeneity_stats['Q_df'], 1)  # Avoid division by zero
 
-                    if Q > Q_df:
-                        hksj_factor = Q / Q_df
-                    else:
-                        hksj_factor = 1.0
-
+                    # HKSJ correction: SE_HKSJ = SE * sqrt(Q / df)
+                    hksj_factor = Q / Q_df
                     pred_se_hksj = pred_se * np.sqrt(hksj_factor)
                 else:
+                    # No heterogeneity stats available, use uncorrected SE
                     pred_se_hksj = pred_se
-                    t_crit = t_dist.ppf(1 - alpha/2, df)
 
                 lower_ci = predictions - t_crit * pred_se_hksj
                 upper_ci = predictions + t_crit * pred_se_hksj

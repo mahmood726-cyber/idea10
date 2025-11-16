@@ -205,10 +205,11 @@ class DoseResponseSimulator:
             # Create study data
             for i, dose in enumerate(doses):
                 # Handle both scalar and array study effects
+                # (scalar for constant heterogeneity, array for dose-dependent heterogeneity)
                 if isinstance(study_effect, (int, float)):
-                    se_i = study_effect
+                    study_effect_i = study_effect
                 else:
-                    se_i = study_effect[i]
+                    study_effect_i = study_effect[i]
 
                 data_list.append({
                     'study_id': study_idx,
@@ -217,7 +218,7 @@ class DoseResponseSimulator:
                     'se': se[i],
                     'variance': se[i]**2,
                     'true_log_rr': true_log_rr[i],
-                    'study_effect': se_i
+                    'study_effect': study_effect_i
                 })
 
         return pd.DataFrame(data_list)
