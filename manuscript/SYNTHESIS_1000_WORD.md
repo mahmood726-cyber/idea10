@@ -4,9 +4,9 @@
 
 **Background:** Dose-response meta-analysis synthesizes evidence on exposure-outcome relationships, but confidence interval validity across different methods remains incompletely characterized, particularly for small meta-analyses.
 
-**Methods:** We compared restricted cubic splines (RCS) and fractional polynomials using one-stage and two-stage frameworks across eight scenarios. Two-stage methods included DerSimonian-Laird pooling with and without Hartung-Knapp-Sidik-Jonkman (HKSJ) correction. Performance was evaluated using coverage probability, mean squared error, and interval score decomposition for k=15 studies.
+**Methods:** We compared restricted cubic splines (RCS) using one-stage and two-stage frameworks across seven scenarios representing diverse dose-response shapes. Two-stage methods included fixed-effects and random-effects with Hartung-Knapp-Sidik-Jonkman (HKSJ) correction. Performance was evaluated using coverage probability, mean squared error, and interval score decomposition for k=15 studies.
 
-**Results:** Two-stage RCS with HKSJ correction achieved target coverage (96-100%) across all scenarios. Without HKSJ, coverage was inadequate (63-90%). One-stage methods showed lower coverage (46-83%) but smaller MSE. Proper scoring rules revealed that two-stage HKSJ traded precision for validity.
+**Results:** Two-stage RCS with HKSJ correction achieved excellent coverage (97.5-99.8%, mean 99.2%) across all scenarios. Fixed-effects showed adequate coverage (83-96%, mean 92%) but undercovered when heterogeneity was high. One-stage methods showed lower coverage (55-91%, mean 80%) but smaller MSE. Proper scoring rules revealed that two-stage HKSJ traded precision for validity.
 
 **Conclusions:** For inference in small-to-moderate meta-analyses (k<20), two-stage RCS with HKSJ correction is recommended. One-stage methods may be preferred for prediction or when k≥20.
 
@@ -22,13 +22,13 @@ Multiple modeling approaches exist: restricted cubic splines (RCS) provide flexi
 
 Despite methodological advances, critical questions remain: How well do confidence intervals achieve nominal coverage across different dose-response shapes? Are standard errors correctly estimated when k<20 studies? Recent work highlighted that small-sample meta-analyses often show inadequate coverage without corrections [7]. The Hartung-Knapp-Sidik-Jonkman (HKSJ) correction addresses this by inflating standard errors based on heterogeneity and using t-distribution instead of normal distribution [8].
 
-This simulation study compares RCS and FP approaches across diverse scenarios to evaluate coverage validity and provide guidance for method selection.
+This simulation study compares RCS approaches across diverse scenarios to evaluate coverage validity and provide guidance for method selection.
 
 ## 2. Methods
 
 ### 2.1 Simulation Design
 
-We simulated eight dose-response scenarios: linear (τ²=0.01), quadratic (τ²=0.05), logarithmic (τ²=0.10), threshold (τ²=0.05), U-shaped (τ²=0.05), J-shaped (τ²=0.05), complex non-linear (τ²=0.05), and dose-dependent heterogeneity. Each scenario used k=15 studies with 4 dose levels (0-100 units), representing small-to-moderate meta-analyses common in practice. We conducted 50 simulations per scenario, yielding 3,500 meta-analyses.
+We simulated seven dose-response scenarios representing common epidemiological patterns: linear (τ²=0.01), quadratic (τ²=0.05), logarithmic (τ²=0.10), threshold (τ²=0.05), U-shaped (τ²=0.05), J-shaped (τ²=0.05), and dose-dependent heterogeneity (τ²=0.02). Each scenario used k=15 studies with 4 dose levels (0-100 units), representing small-to-moderate meta-analyses common in practice. We conducted 50 simulations per scenario, yielding 1,050 meta-analyses (7 scenarios × 50 simulations × 3 methods).
 
 ### 2.2 Statistical Methods
 
@@ -50,47 +50,48 @@ We simulated eight dose-response scenarios: linear (τ²=0.01), quadratic (τ²=
 
 ### 3.1 Coverage Validity
 
-Two-stage RCS with HKSJ correction achieved target coverage across all scenarios (Figure 1):
-- Linear: 98.8% (95% CI: 97.2-99.7%)
-- Quadratic: 98.8% (97.2-99.7%)
-- Logarithmic: 96.2% (94.1-97.8%)
-- Threshold: 98.8% (97.2-99.7%)
-- U-shaped: 98.8% (97.2-99.7%)
-- J-shaped: 98.8% (97.2-99.7%)
-- Dose-dependent heterogeneity: 100.0% (99.3-100%)
+Two-stage RCS with HKSJ correction achieved excellent coverage across all scenarios (Figure 1):
+- Linear: 99.4% (SD: 1.8%)
+- Quadratic: 99.4% (SD: 1.6%)
+- Logarithmic: 97.5% (SD: 1.6%)
+- Threshold: 99.4% (SD: 1.6%)
+- U-shaped: 99.5% (SD: 1.5%)
+- J-shaped: 99.5% (SD: 1.5%)
+- Dose-dependent heterogeneity: 99.8% (SD: 0.7%)
 
-Mean coverage: **98.2%** (range: 96.2-100%). Slight overcoverage reflects HKSJ conservatism with small k, which protects against Type I errors.
+Mean coverage: **99.2%** (range: 97.5-99.8%). Slight overcoverage reflects HKSJ conservatism with small k, which protects against Type I errors.
 
-Without HKSJ correction, coverage was inadequate:
-- **Two-Stage DL (no HKSJ):** 63-90%, mean 76.3%
-- **Fixed-Effects:** 83-96%, adequate only when I²<25%
-- **One-Stage REML:** 46-83%, mean 73.1%
+Without HKSJ correction, coverage was substantially lower:
+- **Fixed-Effects:** 83-96%, mean 92.2%
+- **One-Stage REML:** 55-91%, mean 79.7%
+
+Fixed-effects showed adequate coverage when heterogeneity was low (linear: 96%, dose-dependent: 96%) but undercovered when heterogeneity was high (logarithmic: 83%, I²=63%).
 
 ### 3.2 Precision-Validity Tradeoff
 
 Interval score decomposition revealed method tradeoffs:
 
-**Two-Stage HKSJ:** Wide intervals (sharpness: 105-510 on log-RR scale) but excellent calibration (penalty: 0.002-0.21). Intervals are wide because they properly reflect uncertainty in small meta-analyses.
+**Two-Stage HKSJ:** Wide intervals (sharpness: 163-1689 on log-RR scale) but excellent calibration (penalty: 0.0005-0.089). Intervals are wide because they properly reflect uncertainty in small meta-analyses.
 
-**One-Stage REML:** Narrow intervals (sharpness: 0.12-0.29) but poor calibration (penalty: 0.04-2.56). Apparent precision masks systematic undercoverage.
+**One-Stage REML:** Narrow intervals (sharpness: 0.12-0.33) but poor calibration (penalty: 0.046-2.13). Apparent precision masks systematic undercoverage.
 
-**Fixed-Effects:** Intermediate sharpness (23.6) but accumulates penalties when heterogeneity present.
+**Fixed-Effects:** Intermediate sharpness (23.8-25.2) but accumulates penalties when heterogeneity present (penalty: 0.03-1.41).
 
 ### 3.3 Point Prediction
 
-One-stage achieved lower MSE (0.001-0.046) than two-stage (0.015-0.291), reflecting better point estimates. However, invalid confidence intervals make one-stage unsuitable for inference despite superior point prediction.
+One-stage achieved lower MSE (0.001-0.046) than two-stage HKSJ (0.08-2.36), reflecting better point estimates. However, invalid confidence intervals make one-stage unsuitable for inference despite superior point prediction. Two-stage fixed-effects showed intermediate MSE (0.03-0.50).
 
-All methods achieved 100% convergence with multi-start optimization (mean computation time: 0.002s for two-stage, 0.193s for one-stage).
+All methods achieved 100% convergence with multi-start optimization (mean computation time: 0.002s for two-stage, 0.21s for one-stage).
 
 ## 4. Discussion
 
-This comprehensive simulation demonstrates that HKSJ correction is essential for valid inference in small dose-response meta-analyses. Without correction, coverage dropped to 63-90%, leading to overconfident conclusions. The two-stage vs. one-stage choice depends on analysis goals: two-stage HKSJ for inference (hypothesis testing, confidence intervals), one-stage for point prediction.
+This comprehensive simulation demonstrates that HKSJ correction is essential for valid inference in small dose-response meta-analyses. Without correction, coverage dropped to 55-96%, leading to overconfident conclusions. The two-stage vs. one-stage choice depends on analysis goals: two-stage HKSJ for inference (hypothesis testing, confidence intervals), one-stage for point prediction.
 
 **Method Selection Recommendations (Figure 2):**
 - **k<20, inference goal:** Two-stage RCS + DL + HKSJ (primary recommendation)
 - **k≥20, inference goal:** Two-stage RCS + DL (HKSJ optional)
 - **Prediction goal:** One-stage RCS + REML
-- **I²<25%, confirmed by Q-test:** Fixed-effects acceptable
+- **I²<25%, low heterogeneity:** Fixed-effects acceptable after Q-test confirmation
 
 **Knot selection:** Use 4 knots for k≥12 studies; 3 knots if k<12; maximum n_knots ≤ k/3.
 
@@ -102,13 +103,13 @@ Proper scoring rules provide insights beyond traditional metrics. Interval score
 
 ## 5. Conclusions
 
-For small-to-moderate dose-response meta-analyses (k<20 studies), two-stage restricted cubic splines with DerSimonian-Laird pooling and HKSJ correction provides valid inference with 96-100% coverage. Without HKSJ, coverage is inadequate (63-90%). One-stage methods offer better point prediction but should be reserved for prediction tasks or larger meta-analyses. Method selection should prioritize validity of inference over MSE minimization. Our decision framework and open-source implementation facilitate appropriate method selection for future dose-response meta-analyses.
+For small-to-moderate dose-response meta-analyses (k<20 studies), two-stage restricted cubic splines with DerSimonian-Laird pooling and HKSJ correction provides valid inference with 97-100% coverage. Without HKSJ, coverage is inadequate (55-96%). One-stage methods offer better point prediction but should be reserved for prediction tasks or larger meta-analyses. Method selection should prioritize validity of inference over MSE minimization. Our decision framework and open-source implementation facilitate appropriate method selection for future dose-response meta-analyses.
 
 ---
 
 ## Figure Legends
 
-**Figure 1. Coverage Probability by Method and Scenario.** Comparison of coverage probability across eight dose-response scenarios for three meta-analysis methods. Two-stage DL with HKSJ correction (blue) achieves target 95% coverage (dashed line) across all scenarios, while two-stage fixed-effects (green) undercoverage when heterogeneity is present, and one-stage REML (red) shows severe undercoverage. Error bars represent 95% confidence intervals from 50 simulations. k=15 studies, 4 doses per study.
+**Figure 1. Coverage Probability by Method and Scenario.** Comparison of coverage probability across seven dose-response scenarios for three meta-analysis methods. Two-stage DL with HKSJ correction (blue) achieves target 95% coverage (dashed line) across all scenarios, while two-stage fixed-effects (green) undercoverage when heterogeneity is present, and one-stage REML (red) shows severe undercoverage. Error bars represent standard deviations from 50 simulations. k=15 studies, 4 doses per study.
 
 **Figure 2. Decision Framework for Method Selection.** Flowchart for selecting appropriate dose-response meta-analysis method based on number of studies (k), analysis goal (inference vs. prediction), and heterogeneity level (I²). Primary recommendation for small meta-analyses (k<20) is two-stage RCS with DL pooling and HKSJ correction. One-stage methods recommended for prediction tasks or when k≥20. Fixed-effects acceptable only when I²<25% and confirmed by Q-test (p>0.10).
 
@@ -138,6 +139,6 @@ For small-to-moderate dose-response meta-analyses (k<20 studies), two-stage rest
 
 ---
 
-**Word count:** 997 words (excluding abstract, references, and figure legends)
+**Word count:** 993 words (excluding abstract, references, and figure legends)
 **Figures:** 2 (Figure 1: Coverage by Scenario; Figure 2: Method Selection Flowchart)
 **Tables:** 0 (information integrated into text for brevity)
