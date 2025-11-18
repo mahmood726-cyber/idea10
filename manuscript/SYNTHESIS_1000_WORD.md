@@ -62,7 +62,7 @@ Two-stage RCS with HKSJ correction achieved excellent coverage across all scenar
 Mean coverage: **99.2%** (range: 97.5-99.8%). Slight overcoverage reflects HKSJ conservatism with small k, which protects against Type I errors.
 
 Without HKSJ correction, coverage was substantially lower:
-- **Fixed-Effects:** 83-96%, mean 92.2%
+- **Fixed-Effects:** 83-96%, mean 92.3%
 - **One-Stage REML:** 55-91%, mean 79.7%
 
 Fixed-effects showed adequate coverage when heterogeneity was low (linear: 96%, dose-dependent: 96%) but undercovered when heterogeneity was high (logarithmic: 83%, I²=63%).
